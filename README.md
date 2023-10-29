@@ -1,5 +1,5 @@
 # monitoring
-Monitoring for a project
+Monitoring for a project using Prometheus.
 
 ## Alert sending to telegram group
 Create a Telegram bot by following the guide in the Telegram docs. After creating the bot, you will receive a token that will be used to configure the Alertmanager.
