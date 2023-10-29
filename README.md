@@ -1,4 +1,4 @@
-# monitoring
+# Monitoring
 Monitoring for a project using Prometheus.
 
 ## Alert sending to telegram group
