@@ -1,10 +1,36 @@
+# version: '3'
+# services:
+#   prometheus:
+#     image: prom/prometheus:v2.48.0-rc.0
+#     volumes:
+#       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+#       - prometheus-data:/prometheus
+#     command:
+#       - '--config.file=/etc/prometheus/prometheus.yml'
+#       - '--storage.tsdb.path=/prometheus'
+#       - '--web.console.templates=/etc/prometheus/consoles'
+#       - '--web.console.libraries=/etc/prometheus/console_libraries'
+#     ports:
+#       - 9090:9090
+
+#   node-exporter:
+#     image: prom/node-exporter:v1.6.1
+#     volumes:
+#       - /proc:/host/proc:ro
+#       - /sys:/host/sys:ro
+#       - /:/rootfs:ro
+#     ports:
+#       - 9100:9100
+# volumes:
+#   prometheus-data: {}
+
 version: '3'
 services:
   prometheus:
     image: prom/prometheus:v2.48.0-rc.0
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus-data:/prometheus
+      - ./prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -12,6 +38,9 @@ services:
       - '--web.console.libraries=/etc/prometheus/console_libraries'
     ports:
       - 9090:9090
+    depends_on:
+      - node-exporter
+      - alertmanager
 
   node-exporter:
     image: prom/node-exporter:v1.6.1
@@ -19,7 +48,19 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
       - 9100:9100
-volumes:
-  prometheus-data: {}
+
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    volumes:
+      - ./prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    ports:
+      - 9093:9093
