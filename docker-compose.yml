@@ -2,6 +2,7 @@ version: '3'
 services:
   prometheus:
     image: prom/prometheus:v2.48.0-rc.0
+    container_name: prometheus
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml
@@ -18,6 +19,7 @@ services:
 
   node-exporter:
     image: prom/node-exporter:v1.6.1
+    container_name: node-exporter_prometheus
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -32,6 +34,7 @@ services:
 
   alertmanager:
     image: prom/alertmanager:v0.26.0
+    container_name: alertmanager_prometheus
     volumes:
       - ./prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml
     command:
@@ -39,4 +42,44 @@ services:
     ports:
       - 9093:9093
 
-    image: grafanas
+  grafana:
+    image: grafana/grafana:10.2.0-ubuntu
+    container_name: grafana
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - default
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: 'admin'
+      GF_SECURITY_ADMIN_PASSWORD: 'admin'
+      GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-simple-json-datasource,grafana-worldmap-panel,grafana-piechart-panel"
+
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ${PWD}/config/loki-config.yaml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    volumes:
+      - ${PWD}/config/promtail-config.yaml:/etc/promtail/config.yaml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/config.yaml
+    depends_on:
+      - loki
+    ports:
+      - "9080:9080"
+
+volumes:
+  grafana-data:
